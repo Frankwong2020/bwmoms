@@ -55,10 +55,20 @@ const otherSections = sections.filter((s) => s !== '遛娃圣地');
 
     <!-- Main list -->
     <section>
-      <h2 class="text-xl font-serif font-bold mb-4 text-ink flex items-baseline gap-2">
-        <span>🎈 遛娃圣地</span>
-        <span class="text-sm text-ink-muted font-sans">{mainList.length} 个地点</span>
-      </h2>
+      <div class="flex items-baseline justify-between gap-2 mb-4">
+        <h2 class="text-xl font-serif font-bold text-ink flex items-baseline gap-2">
+          <span>🎈 遛娃圣地</span>
+          <span class="text-sm text-ink-muted font-sans">{mainList.length} 个地点</span>
+        </h2>
+        <button
+          type="button"
+          data-create-item
+          data-item-type="play"
+          class="text-sm px-3 py-1.5 rounded-chip bg-sage text-white hover:bg-sage-dark font-medium whitespace-nowrap"
+        >
+          + 新增地点
+        </button>
+      </div>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="play-grid">
         {mainList.map((p) => (
           <article
@@ -122,6 +132,8 @@ const otherSections = sections.filter((s) => s !== '遛娃圣地');
 
 <script>
   import '../lib/feedback';
+  import { registerPlayTemplate } from '../lib/card-templates';
+  registerPlayTemplate();
   import '../lib/hydrate-items';
   import '../lib/edit-item';
   import '../lib/history';

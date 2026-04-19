@@ -30,8 +30,20 @@ function mapLink(addr: string) {
   <Header activeTab="doctors" />
 
   <section class="max-w-6xl mx-auto px-6 pt-10 pb-6">
-    <h1 class="text-3xl md:text-4xl font-serif font-bold">👨‍⚕️ 医生推荐</h1>
-    <p class="text-ink-light mt-2">按分类筛选 · 基于社区真实就诊反馈</p>
+    <div class="flex items-start justify-between gap-3 flex-wrap">
+      <div>
+        <h1 class="text-3xl md:text-4xl font-serif font-bold">👨‍⚕️ 医生推荐</h1>
+        <p class="text-ink-light mt-2">按分类筛选 · 基于社区真实就诊反馈</p>
+      </div>
+      <button
+        type="button"
+        data-create-item
+        data-item-type="doctor"
+        class="text-sm px-3 py-1.5 rounded-chip bg-sage text-white hover:bg-sage-dark font-medium whitespace-nowrap mt-2"
+      >
+        + 新增医生
+      </button>
+    </div>
   </section>
 
   <main class="max-w-6xl mx-auto px-6 pb-16">
@@ -93,6 +105,8 @@ function mapLink(addr: string) {
 
 <script>
   import '../lib/feedback';
+  import { registerDoctorTemplate } from '../lib/card-templates';
+  registerDoctorTemplate();
   import '../lib/hydrate-items';
   import '../lib/edit-item';
   import '../lib/history';

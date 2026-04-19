@@ -69,26 +69,39 @@ export async function fetchAllItems(): Promise<DbItem[]> {
   return (data || []) as DbItem[];
 }
 
+// Each page calls registerNewCardHandler so hydration knows where/how
+// to append cards for items that exist in DB but not in static HTML.
+type NewCardHandler = (item: DbItem) => void;
+const newCardHandlers = new Map<ItemType, NewCardHandler>();
+
+export function registerNewCardHandler(type: ItemType, handler: NewCardHandler) {
+  newCardHandlers.set(type, handler);
+}
+
 export async function hydrateItems() {
   const cards = cardsOnPage();
-  if (cards.length === 0) return;
-
-  // Collect ids we need
-  const needed = new Set<string>();
-  for (const c of cards) {
-    const { type, id } = cardMeta(c);
-    if (type && id) needed.add(cardKey(type, id));
-  }
-
   const items = await fetchAllItems();
   for (const it of items) {
     itemCache.set(cardKey(it.item_type, it.id), it);
   }
 
+  // 1. Update existing cards
+  const existingKeys = new Set<string>();
   for (const c of cards) {
     const { type, id } = cardMeta(c);
+    if (!type || !id) continue;
+    existingKeys.add(cardKey(type, id));
     const item = itemCache.get(cardKey(type, id));
     if (item) applyFields(c, item);
+  }
+
+  // 2. Append new cards for DB items that aren't in the static HTML
+  for (const it of items) {
+    const k = cardKey(it.item_type, it.id);
+    if (existingKeys.has(k)) continue;
+    if (it.is_hidden || it.is_deleted) continue;
+    const handler = newCardHandlers.get(it.item_type);
+    if (handler) handler(it);
   }
 }
 

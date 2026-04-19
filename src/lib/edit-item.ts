@@ -47,9 +47,16 @@ const SCHEMAS: Record<ItemType, FieldSpec[]> = {
   ],
 };
 
+type Mode = 'edit' | 'create';
+let currentMode: Mode = 'edit';
 let currentItemType: ItemType | null = null;
 let currentItemId: string | null = null;
 let modalEl: HTMLElement | null = null;
+
+// rate limit thresholds
+const NEW_USER_WINDOW_MS = 24 * 60 * 60 * 1000;  // 24 hours
+const NEW_USER_DAILY_LIMIT = 3;
+const ESTABLISHED_USER_DAILY_LIMIT = 10;
 
 function renderFields(type: ItemType, data: Record<string, unknown>) {
   const container = document.getElementById('editor-fields')!;
@@ -88,15 +95,49 @@ function renderFields(type: ItemType, data: Record<string, unknown>) {
   }
 }
 
-function openModal(type: ItemType, id: string, data: Record<string, unknown>) {
+const TYPE_LABELS: Record<ItemType, string> = {
+  play: '遛娃地点',
+  doctor: '医生/诊所',
+  service: '维修师傅',
+  class: '课外班',
+  streaming: '影视网站',
+};
+
+function openModal(
+  mode: Mode,
+  type: ItemType,
+  id: string | null,
+  data: Record<string, unknown>
+) {
+  currentMode = mode;
   currentItemType = type;
   currentItemId = id;
   if (!modalEl) modalEl = document.getElementById('item-editor');
   if (!modalEl) return;
 
+  // Swap title and button text by mode
+  const title = modalEl.querySelector<HTMLElement>('#editor-title')!;
+  const submitBtn = modalEl.querySelector<HTMLButtonElement>('#editor-submit')!;
+  const historyLink = modalEl.querySelector<HTMLElement>('#editor-history-link')!;
+  const commentLabel = modalEl.querySelector<HTMLElement>('#editor-comment-label')!;
+  const commentInput = modalEl.querySelector<HTMLInputElement>('input[name="edit_comment"]')!;
+
+  if (mode === 'create') {
+    title.textContent = `新增${TYPE_LABELS[type]}`;
+    submitBtn.textContent = '发布';
+    historyLink.classList.add('hidden');
+    commentLabel.textContent = '来源说明';
+    commentInput.placeholder = '例：亲身体验 / 朋友推荐 / 桥水群 XX 提到 / 官网 ...';
+  } else {
+    title.textContent = '编辑条目';
+    submitBtn.textContent = '保存';
+    historyLink.classList.remove('hidden');
+    commentLabel.textContent = '编辑说明';
+    commentInput.placeholder = '例：修正电话号码、店铺已搬家、地址更新...';
+  }
+
   renderFields(type, data);
 
-  const commentInput = modalEl.querySelector<HTMLInputElement>('input[name="edit_comment"]')!;
   commentInput.value = '';
 
   const errEl = modalEl.querySelector<HTMLElement>('#editor-error')!;
@@ -129,7 +170,7 @@ function readForm(type: ItemType): Record<string, string> {
 
 async function handleSubmit(ev: Event) {
   ev.preventDefault();
-  if (!currentItemType || !currentItemId) return;
+  if (!currentItemType) return;
 
   const { data: sessionData } = await supabase.auth.getSession();
   const session = sessionData.session;
@@ -145,6 +186,13 @@ async function handleSubmit(ev: Event) {
     commentInput.focus();
     return;
   }
+
+  if (currentMode === 'create') {
+    await handleCreate(session.user.id, currentItemType, newFields, comment);
+    return;
+  }
+
+  if (!currentItemId) return;
 
   // Fetch current (for before snapshot + to merge any fields we don't edit)
   const { data: currentRow, error: fetchErr } = await supabase
@@ -212,6 +260,95 @@ function showError(msg: string) {
   errEl.classList.remove('hidden');
 }
 
+async function checkRateLimit(userId: string, userCreatedAt: string): Promise<string | null> {
+  // Returns error message if over limit, null if OK
+  const accountAge = Date.now() - new Date(userCreatedAt).getTime();
+  const isNewUser = accountAge < NEW_USER_WINDOW_MS;
+  const limit = isNewUser ? NEW_USER_DAILY_LIMIT : ESTABLISHED_USER_DAILY_LIMIT;
+
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count, error } = await supabase
+    .from('items')
+    .select('*', { count: 'exact', head: true })
+    .eq('created_by', userId)
+    .gte('created_at', since);
+
+  if (error) {
+    console.warn('checkRateLimit', error);
+    return null; // don't block on query failure
+  }
+  if ((count ?? 0) >= limit) {
+    return `你今天已经新增了 ${count} 个条目（${isNewUser ? '新用户' : '老用户'}每天限 ${limit} 个）。明天再来吧。`;
+  }
+  return null;
+}
+
+async function handleCreate(
+  userId: string,
+  type: ItemType,
+  fields: Record<string, string>,
+  sourceNote: string
+) {
+  // Basic validation: at least one required field must be non-empty
+  const requiredKeys = SCHEMAS[type].filter((s) => s.required).map((s) => s.key);
+  for (const key of requiredKeys) {
+    if (!fields[key]) {
+      showError(`请填写 "${SCHEMAS[type].find((s) => s.key === key)!.label}"`);
+      return;
+    }
+  }
+
+  const submitBtn = modalEl!.querySelector<HTMLButtonElement>('#editor-submit')!;
+  submitBtn.disabled = true;
+
+  // Rate limit check
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    const rateErr = await checkRateLimit(userId, user.created_at);
+    if (rateErr) {
+      showError(rateErr);
+      submitBtn.disabled = false;
+      return;
+    }
+  }
+
+  const newId = crypto.randomUUID();
+  const nowIso = new Date().toISOString();
+
+  // Insert into items
+  const { error: insertErr } = await supabase.from('items').insert({
+    id: newId,
+    item_type: type,
+    data: fields,
+    created_by: userId,
+    updated_by: userId,
+    created_at: nowIso,
+    updated_at: nowIso,
+  });
+
+  if (insertErr) {
+    showError('发布失败：' + insertErr.message);
+    submitBtn.disabled = false;
+    return;
+  }
+
+  // Log first edit (creation) to history
+  await supabase.from('item_edits').insert({
+    item_id: newId,
+    user_id: userId,
+    before_data: null,
+    after_data: fields,
+    edit_comment: `新建：${sourceNote}`,
+  });
+
+  submitBtn.disabled = false;
+  closeModal();
+
+  // Reload page so the new card appears (simplest reliable way)
+  alert('🎉 发布成功！页面即将刷新显示新条目。');
+  window.location.reload();
+}
+
 function bindEditButtons() {
   document.querySelectorAll<HTMLButtonElement>('[data-edit-item]').forEach((btn) => {
     if ((btn as unknown as { __bound?: boolean }).__bound) return;
@@ -237,7 +374,24 @@ function bindEditButtons() {
           .maybeSingle();
         data = (row?.data as Record<string, unknown>) ?? {};
       }
-      openModal(type, id, data as Record<string, unknown>);
+      openModal('edit', type, id, data as Record<string, unknown>);
+    });
+  });
+}
+
+function bindCreateButtons() {
+  document.querySelectorAll<HTMLButtonElement>('[data-create-item]').forEach((btn) => {
+    if ((btn as unknown as { __bound?: boolean }).__bound) return;
+    (btn as unknown as { __bound?: boolean }).__bound = true;
+    btn.addEventListener('click', async () => {
+      const { data: sess } = await supabase.auth.getSession();
+      if (!sess.session) {
+        alert('请先登录才能新增');
+        return;
+      }
+      const type = btn.dataset.itemType as ItemType;
+      if (!type) return;
+      openModal('create', type, null, {});
     });
   });
 }
@@ -262,8 +416,12 @@ function init() {
   });
 
   bindEditButtons();
+  bindCreateButtons();
   // Rebind if new cards appear (rare, but safe)
-  const observer = new MutationObserver(() => bindEditButtons());
+  const observer = new MutationObserver(() => {
+    bindEditButtons();
+    bindCreateButtons();
+  });
   observer.observe(document.body, { childList: true, subtree: true });
 }
 
