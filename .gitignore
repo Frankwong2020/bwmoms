@@ -21,3 +21,7 @@ Thumbs.db
 # logs
 *.log
 npm-debug.log*
+
+# debug artifacts
+debug-*.png
+*.debug.png
