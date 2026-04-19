@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import Header from '../components/Header.astro';
 import Hero from '../components/Hero.astro';
+import ItemFeedback from '../components/ItemFeedback.astro';
 import playData from '../data/play.json';
 
 type Play = {
@@ -74,6 +75,7 @@ const otherSections = sections.filter((s) => s !== '遛娃圣地');
             <a href={mapLink(p.name)} target="_blank" rel="noopener" class="text-xs text-sage-dark hover:text-sage font-medium mt-3 inline-flex items-center gap-1">
               <span>📍 Google Maps</span>
             </a>
+            <ItemFeedback itemType="play" itemId={p.id} />
           </article>
         ))}
       </div>
@@ -99,6 +101,7 @@ const otherSections = sections.filter((s) => s !== '遛娃圣地');
                 <a href={mapLink(p.name)} target="_blank" rel="noopener" class="text-xs text-sage-dark hover:text-sage font-medium mt-2 inline-flex items-center gap-1">
                   <span>📍 Google Maps</span>
                 </a>
+                <ItemFeedback itemType="play" itemId={p.id} />
               </article>
             ))}
           </div>
@@ -107,6 +110,10 @@ const otherSections = sections.filter((s) => s !== '遛娃圣地');
     })}
   </main>
 </Base>
+
+<script>
+  import '../lib/feedback';
+</script>
 
 <style>
   .scrollbar-none::-webkit-scrollbar { display: none; }

@@ -39,8 +39,19 @@ npm run build   # 输出到 dist/
 ## 路线图
 
 - [x] Phase 1: 静态站点 + 全部数据导入 + Netlify 部署
-- [ ] Phase 2: 用户登录 + 评分 + 评论（Supabase）
+- [x] Phase 2: Google 登录 + 评分 + 评论（Supabase）
 - [ ] Phase 3: 维基式编辑 + 编辑历史 + 举报/审核
+
+## 环境变量
+
+本地 `.env`（从 `.env.example` 复制）和 Netlify 部署环境都需要：
+
+```
+PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
+```
+
+（anon key 是公开值，不是秘密 — 浏览器会直接使用它。）
 
 ## 贡献
 

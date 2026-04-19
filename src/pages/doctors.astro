@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import Header from '../components/Header.astro';
+import ItemFeedback from '../components/ItemFeedback.astro';
 import doctorsData from '../data/doctors.json';
 
 type Review = { date: string; tag: string; text: string };
@@ -81,11 +82,16 @@ function mapLink(addr: string) {
               </div>
             </details>
           )}
+          <ItemFeedback itemType="doctor" itemId={d.id} />
         </article>
       ))}
     </div>
   </main>
 </Base>
+
+<script>
+  import '../lib/feedback';
+</script>
 
 <style>
   .scrollbar-none::-webkit-scrollbar { display: none; }

@@ -1,0 +1,71 @@
+---
+// Attaches rating + comments UI to any item card. Embedded per-card.
+// Usage: <ItemFeedback itemType="play" itemId="xyz" />
+export interface Props {
+  itemType: 'play' | 'doctor' | 'service' | 'class' | 'streaming';
+  itemId: string;
+}
+const { itemType, itemId } = Astro.props;
+---
+
+<div
+  class="item-feedback mt-4 pt-4 border-t border-black/5"
+  data-item-type={itemType}
+  data-item-id={itemId}
+>
+  <!-- Summary: shows avg stars + count, always visible -->
+  <div class="flex items-center justify-between gap-3">
+    <div class="flex items-center gap-2 text-sm">
+      <div class="stars-summary flex gap-0.5 text-lg leading-none text-ink-muted">
+        <span>☆</span><span>☆</span><span>☆</span><span>☆</span><span>☆</span>
+      </div>
+      <span class="text-xs text-ink-muted summary-text">暂无评分</span>
+    </div>
+    <button
+      type="button"
+      class="toggle-feedback text-xs text-sage-dark hover:text-sage font-medium"
+    >
+      💬 评分 / 评论
+    </button>
+  </div>
+
+  <!-- Expandable panel (hidden by default) -->
+  <div class="feedback-panel hidden mt-4 space-y-4">
+    <!-- Rating picker -->
+    <div class="rating-picker">
+      <p class="text-xs text-ink-muted mb-2">你的评分（登录后可评）</p>
+      <div class="flex gap-1 text-2xl leading-none user-stars" role="radiogroup" aria-label="评分">
+        <button type="button" class="star-btn hover:scale-110 transition" data-star="1" aria-label="1 星">☆</button>
+        <button type="button" class="star-btn hover:scale-110 transition" data-star="2" aria-label="2 星">☆</button>
+        <button type="button" class="star-btn hover:scale-110 transition" data-star="3" aria-label="3 星">☆</button>
+        <button type="button" class="star-btn hover:scale-110 transition" data-star="4" aria-label="4 星">☆</button>
+        <button type="button" class="star-btn hover:scale-110 transition" data-star="5" aria-label="5 星">☆</button>
+      </div>
+      <p class="login-prompt text-xs text-warm mt-1 hidden">请先登录</p>
+    </div>
+
+    <!-- Comments -->
+    <div class="comments-list space-y-2">
+      <p class="text-xs text-ink-muted loading-text">加载评论中…</p>
+    </div>
+
+    <!-- Comment form -->
+    <form class="comment-form" hidden>
+      <textarea
+        class="w-full px-3 py-2 text-sm border border-black/10 rounded-chip focus:outline-none focus:border-sage resize-y min-h-[64px]"
+        placeholder="分享你的体验…"
+        maxlength="2000"
+        required
+      ></textarea>
+      <div class="flex justify-end mt-2">
+        <button
+          type="submit"
+          class="px-4 py-1.5 rounded-chip bg-sage text-white text-xs font-medium hover:bg-sage-dark transition disabled:opacity-50"
+        >
+          发表评论
+        </button>
+      </div>
+    </form>
+    <p class="login-prompt-comment text-xs text-warm hidden">登录后可评论</p>
+  </div>
+</div>

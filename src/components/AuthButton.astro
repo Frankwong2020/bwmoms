@@ -1,0 +1,88 @@
+---
+// Renders a login/logout button. Hydration happens via client-side script below.
+---
+
+<div id="auth-root" class="flex items-center gap-2">
+  <!-- Initial state: loading shimmer -->
+  <div class="h-8 w-24 rounded-chip bg-sage-light/50 animate-pulse" data-auth-loading></div>
+
+  <!-- Signed out view -->
+  <button
+    type="button"
+    data-auth-signin
+    class="hidden items-center gap-2 px-3 py-2 rounded-chip bg-white border border-black/10 text-sm font-medium hover:bg-sage-light transition"
+  >
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.76h3.56c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.56-2.76c-.98.66-2.24 1.06-3.72 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/>
+      <path fill="#FBBC05" d="M5.84 14.1A6.6 6.6 0 0 1 5.48 12c0-.73.13-1.44.36-2.1V7.07H2.18a11 11 0 0 0 0 9.87l3.66-2.84z"/>
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.2 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1a11 11 0 0 0-9.82 6.07l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"/>
+    </svg>
+    <span>Google 登录</span>
+  </button>
+
+  <!-- Signed in view -->
+  <div data-auth-user class="hidden items-center gap-2">
+    <img data-auth-avatar src="" alt="avatar" class="w-8 h-8 rounded-full bg-sage-light" />
+    <span data-auth-name class="text-sm font-medium text-ink hidden md:inline"></span>
+    <button
+      type="button"
+      data-auth-signout
+      class="text-xs text-ink-muted hover:text-ink-light px-2 py-1 rounded-chip hover:bg-sage-light transition"
+    >
+      登出
+    </button>
+  </div>
+</div>
+
+<script>
+  import { supabase } from '../lib/supabase.ts';
+
+  const root = document.getElementById('auth-root');
+  if (root) {
+    const loading = root.querySelector<HTMLElement>('[data-auth-loading]');
+    const signinBtn = root.querySelector<HTMLButtonElement>('[data-auth-signin]');
+    const userBox = root.querySelector<HTMLElement>('[data-auth-user]');
+    const avatarImg = root.querySelector<HTMLImageElement>('[data-auth-avatar]');
+    const nameSpan = root.querySelector<HTMLElement>('[data-auth-name]');
+    const signoutBtn = root.querySelector<HTMLButtonElement>('[data-auth-signout]');
+
+    function render(session: import('@supabase/supabase-js').Session | null) {
+      loading?.classList.add('hidden');
+      if (session?.user) {
+        signinBtn?.classList.add('hidden');
+        signinBtn?.classList.remove('flex');
+        userBox?.classList.remove('hidden');
+        userBox?.classList.add('flex');
+        const m = session.user.user_metadata as Record<string, string>;
+        const name = m.full_name || m.name || session.user.email?.split('@')[0] || '';
+        const avatar = m.avatar_url || '';
+        if (nameSpan) nameSpan.textContent = name;
+        if (avatarImg && avatar) avatarImg.src = avatar;
+      } else {
+        userBox?.classList.add('hidden');
+        userBox?.classList.remove('flex');
+        signinBtn?.classList.remove('hidden');
+        signinBtn?.classList.add('flex');
+      }
+    }
+
+    supabase.auth.getSession().then(({ data }) => render(data.session));
+    supabase.auth.onAuthStateChange((_event, session) => {
+      render(session);
+      // Notify other components (ratings/comments) of auth change
+      window.dispatchEvent(new CustomEvent('auth-changed', { detail: { session } }));
+    });
+
+    signinBtn?.addEventListener('click', async () => {
+      await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.href },
+      });
+    });
+
+    signoutBtn?.addEventListener('click', async () => {
+      await supabase.auth.signOut();
+    });
+  }
+</script>
