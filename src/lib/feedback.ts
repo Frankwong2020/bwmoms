@@ -85,19 +85,13 @@ async function loadComments(itemType: ItemType, itemId: string): Promise<Comment
   return comments.map((c) => ({ ...c, profile: pmap.get(c.user_id) }));
 }
 
-let cachedSession: Session | null = null;
-
 async function getSession(): Promise<Session | null> {
-  if (cachedSession !== null) return cachedSession;
   const { data } = await supabase.auth.getSession();
-  cachedSession = data.session;
-  return cachedSession;
+  return data.session;
 }
 
-// Invalidate cache on auth change
+// Re-render login prompts across all blocks on auth change
 supabase.auth.onAuthStateChange((_evt, session) => {
-  cachedSession = session;
-  // Re-render login prompts across all blocks
   document.querySelectorAll<FB>('.item-feedback').forEach((block) => {
     updateLoginState(block, session);
   });
@@ -112,20 +106,20 @@ supabase.auth.onAuthStateChange((_evt, session) => {
 });
 
 function updateLoginState(block: FB, session: Session | null) {
+  // Note: star buttons are always clickable. Click handler checks session
+  // and alerts if not logged in. This avoids race conditions where session
+  // hasn't been restored from localStorage yet at bind time.
   const prompt1 = block.querySelector<HTMLElement>('.login-prompt');
   const prompt2 = block.querySelector<HTMLElement>('.login-prompt-comment');
   const form = block.querySelector<HTMLFormElement>('.comment-form');
-  const picker = block.querySelector<HTMLElement>('.user-stars');
   if (session) {
     prompt1?.classList.add('hidden');
     prompt2?.classList.add('hidden');
     if (form) form.hidden = false;
-    picker?.querySelectorAll<HTMLButtonElement>('.star-btn').forEach((b) => (b.disabled = false));
   } else {
     prompt1?.classList.remove('hidden');
     prompt2?.classList.remove('hidden');
     if (form) form.hidden = true;
-    picker?.querySelectorAll<HTMLButtonElement>('.star-btn').forEach((b) => (b.disabled = true));
   }
 }
 
