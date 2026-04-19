@@ -1,0 +1,50 @@
+---
+export interface Props {
+  activeTab?: string;
+}
+const { activeTab = 'play' } = Astro.props;
+
+const tabs = [
+  { id: 'play', href: '/', emoji: '🎈', label: '遛娃地点' },
+  { id: 'doctors', href: '/doctors', emoji: '👨‍⚕️', label: '医生' },
+  { id: 'services', href: '/services', emoji: '🔧', label: '维修师傅' },
+  { id: 'classes', href: '/classes', emoji: '🎨', label: '课外班' },
+  { id: 'recent', href: '/recent', emoji: '📰', label: '最近活动' },
+  { id: 'retirement', href: '/retirement', emoji: '💰', label: '理财' },
+  { id: 'streaming', href: '/streaming', emoji: '📺', label: '影视' },
+];
+---
+
+<header class="bg-white border-b border-black/5 sticky top-0 z-40 backdrop-blur bg-white/90">
+  <div class="max-w-6xl mx-auto px-6 py-5">
+    <div class="flex items-baseline gap-3 mb-1">
+      <a href="/" class="text-2xl md:text-3xl font-serif font-bold text-ink tracking-tight">
+        桥水小娃群
+      </a>
+      <span class="text-sm text-ink-muted hidden md:inline">Bridgewater 华人家庭生活指南</span>
+    </div>
+    <p class="text-sm text-ink-light mb-4">社区共享的遛娃、医生、维修、课外班推荐</p>
+
+    <nav class="flex gap-1.5 overflow-x-auto scrollbar-none -mx-1 px-1">
+      {tabs.map((tab) => (
+        <a
+          href={tab.href}
+          class:list={[
+            'flex-shrink-0 px-4 py-2 rounded-chip text-sm font-medium transition whitespace-nowrap',
+            activeTab === tab.id
+              ? 'bg-sage text-white shadow-soft'
+              : 'bg-sage-light/50 text-ink-light hover:bg-sage-light',
+          ]}
+        >
+          <span class="mr-1">{tab.emoji}</span>
+          {tab.label}
+        </a>
+      ))}
+    </nav>
+  </div>
+</header>
+
+<style>
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+  .scrollbar-none { scrollbar-width: none; }
+</style>

@@ -1,0 +1,25 @@
+---
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import data from '../data/retirement.json';
+
+type Tip = { id: string; text: string };
+const tips = data as Tip[];
+---
+
+<Base title="退休账户 & 理财 · 桥水小娃群">
+  <Header activeTab="retirement" />
+
+  <section class="max-w-6xl mx-auto px-6 pt-10 pb-6">
+    <h1 class="text-3xl md:text-4xl font-serif font-bold">💰 退休账户 & 理财</h1>
+    <p class="text-ink-light mt-2">群友整理的 401k / IRA / HSA 要点</p>
+  </section>
+
+  <main class="max-w-3xl mx-auto px-6 pb-16 space-y-3">
+    {tips.map((t) => (
+      <article class="bg-white rounded-card shadow-soft p-5">
+        <p class="text-ink-light leading-relaxed">{t.text}</p>
+      </article>
+    ))}
+  </main>
+</Base>

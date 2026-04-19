@@ -1,0 +1,61 @@
+---
+// Weather is fetched client-side from Open-Meteo (no API key needed)
+---
+
+<section class="max-w-6xl mx-auto px-6 pt-8 pb-6">
+  <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+    <div>
+      <p class="text-sm text-sage-dark font-medium" id="weather-inline">
+        桥水 · 加载天气中…
+      </p>
+      <h1 class="text-3xl md:text-5xl font-serif font-bold mt-2 leading-tight">
+        今天带娃去哪儿？
+      </h1>
+      <p class="text-ink-light mt-3 max-w-xl">
+        从幼儿园老母亲们一点一点积累出来的 NJ 中部生活指南 · 按需求筛选，一起维护
+      </p>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Fetch weather for Bridgewater, NJ (40.606, -74.556)
+  async function loadWeather() {
+    try {
+      const r = await fetch(
+        'https://api.open-meteo.com/v1/forecast?latitude=40.606&longitude=-74.556&current=temperature_2m,weather_code&temperature_unit=fahrenheit&timezone=America%2FNew_York'
+      );
+      const j = await r.json();
+      const t = Math.round(j.current.temperature_2m);
+      const code = j.current.weather_code;
+      const desc = weatherDesc(code);
+      const emoji = weatherEmoji(code);
+      const el = document.getElementById('weather-inline');
+      if (el) el.textContent = `桥水 · ${emoji} ${desc} · ${t}°F`;
+    } catch (e) {
+      const el = document.getElementById('weather-inline');
+      if (el) el.textContent = '桥水 · 新泽西';
+    }
+  }
+  function weatherDesc(c: number) {
+    if (c === 0) return '晴朗';
+    if (c <= 3) return '多云';
+    if (c <= 48) return '有雾';
+    if (c <= 67) return '有雨';
+    if (c <= 77) return '有雪';
+    if (c <= 82) return '阵雨';
+    if (c <= 86) return '阵雪';
+    return '雷阵雨';
+  }
+  function weatherEmoji(c: number) {
+    if (c === 0) return '☀️';
+    if (c <= 3) return '⛅';
+    if (c <= 48) return '🌫️';
+    if (c <= 67) return '🌧️';
+    if (c <= 77) return '🌨️';
+    if (c <= 82) return '🌦️';
+    if (c <= 86) return '❄️';
+    return '⛈️';
+  }
+  loadWeather();
+</script>

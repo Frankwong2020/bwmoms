@@ -1,0 +1,48 @@
+---
+export interface Props {
+  title?: string;
+  description?: string;
+}
+const {
+  title = '桥水小娃群 · Bridgewater 华人家庭生活指南',
+  description = '桥水及新泽西中北部华人家庭共享的遛娃、医生、维修、课外班推荐',
+} = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-cream text-ink font-sans min-h-screen">
+    <slot />
+    <footer class="mt-24 pb-12 text-center text-sm text-ink-muted">
+      <p>桥水小娃群 · 社区共享内容 · 数据来自微信群友推荐</p>
+      <p class="mt-2">
+        <a href="https://github.com/Frankwong2020/bwmoms" class="hover:text-sage-dark underline">GitHub</a>
+        <span class="mx-2">·</span>
+        <span>欢迎 PR 贡献新推荐</span>
+      </p>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    font-family: 'DM Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  }
+  h1, h2, h3 {
+    font-family: 'Noto Serif SC', 'DM Sans', serif;
+  }
+</style>

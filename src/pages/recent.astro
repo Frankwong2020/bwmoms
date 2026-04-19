@@ -1,0 +1,30 @@
+---
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import data from '../data/recent.json';
+
+type Block = { title: string; items: string[] };
+const blocks = data as Block[];
+---
+
+<Base title="最近活动 · 桥水小娃群">
+  <Header activeTab="recent" />
+
+  <section class="max-w-6xl mx-auto px-6 pt-10 pb-6">
+    <h1 class="text-3xl md:text-4xl font-serif font-bold">📰 最近活动</h1>
+    <p class="text-ink-light mt-2">季节性推荐 · 理财提醒等</p>
+  </section>
+
+  <main class="max-w-4xl mx-auto px-6 pb-16 space-y-6">
+    {blocks.map((b) => (
+      <article class="bg-white rounded-card shadow-soft p-6">
+        {b.title && <h2 class="font-serif font-bold text-lg mb-3">{b.title}</h2>}
+        <ul class="space-y-2 text-ink-light leading-relaxed">
+          {b.items.map((item) => (
+            <li class="text-sm">{item}</li>
+          ))}
+        </ul>
+      </article>
+    ))}
+  </main>
+</Base>

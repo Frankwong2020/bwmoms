@@ -1,0 +1,118 @@
+---
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import doctorsData from '../data/doctors.json';
+
+type Review = { date: string; tag: string; text: string };
+type Doctor = {
+  id: string;
+  category: string;
+  name: string;
+  address: string;
+  phone: string;
+  reviews: Review[];
+};
+const doctors = doctorsData as Doctor[];
+const categories = [...new Set(doctors.map((d) => d.category).filter(Boolean))];
+
+function telLink(phone: string) {
+  const clean = phone.replace(/[^\d+]/g, '');
+  return clean ? `tel:${clean}` : null;
+}
+function mapLink(addr: string) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
+}
+---
+
+<Base title="医生推荐 · 桥水小娃群">
+  <Header activeTab="doctors" />
+
+  <section class="max-w-6xl mx-auto px-6 pt-10 pb-6">
+    <h1 class="text-3xl md:text-4xl font-serif font-bold">👨‍⚕️ 医生推荐</h1>
+    <p class="text-ink-light mt-2">按分类筛选 · 基于社区真实就诊反馈</p>
+  </section>
+
+  <main class="max-w-6xl mx-auto px-6 pb-16">
+    <div class="flex gap-2 overflow-x-auto scrollbar-none mb-6 pb-2">
+      <button class="filter-chip on" data-filter="all">全部 ({doctors.length})</button>
+      {categories.map((cat) => (
+        <button class="filter-chip" data-filter={cat}>{cat}</button>
+      ))}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" id="doc-grid">
+      {doctors.map((d) => (
+        <article class="doc-card bg-white rounded-card shadow-soft p-5" data-cat={d.category}>
+          <div class="flex items-baseline justify-between gap-2 mb-2">
+            <h3 class="font-semibold text-ink text-lg leading-tight">{d.name}</h3>
+            <span class="tag shrink-0">{d.category}</span>
+          </div>
+          <div class="text-sm text-ink-light space-y-1 mb-3">
+            {d.address && (
+              <p>
+                📍 <a href={mapLink(d.address)} target="_blank" rel="noopener" class="hover:text-sage-dark">{d.address}</a>
+              </p>
+            )}
+            {d.phone && (
+              <p>
+                📞 {telLink(d.phone) ? (
+                  <a href={telLink(d.phone)!} class="hover:text-sage-dark">{d.phone}</a>
+                ) : d.phone}
+              </p>
+            )}
+          </div>
+          {d.reviews.length > 0 && (
+            <details class="mt-3">
+              <summary class="text-sm text-sage-dark font-medium cursor-pointer select-none">
+                {d.reviews.length} 条群友反馈
+              </summary>
+              <div class="mt-3 space-y-3">
+                {d.reviews.map((r) => (
+                  <div class="text-sm border-l-2 border-sage-light pl-3 py-1">
+                    {(r.date || r.tag) && (
+                      <div class="text-xs text-ink-muted mb-1 flex gap-2">
+                        {r.date && <span>{r.date}</span>}
+                        {r.tag && <span class="tag text-[10px] py-0 px-2">{r.tag}</span>}
+                      </div>
+                    )}
+                    {r.text && <p class="text-ink-light leading-relaxed">{r.text}</p>}
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+        </article>
+      ))}
+    </div>
+  </main>
+</Base>
+
+<style>
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+  .scrollbar-none { scrollbar-width: none; }
+  .filter-chip {
+    @apply flex-shrink-0 px-4 py-2 rounded-chip text-sm font-medium whitespace-nowrap transition cursor-pointer;
+    @apply bg-white text-ink-light hover:bg-sage-light;
+  }
+  .filter-chip.on {
+    @apply bg-sage text-white shadow-soft;
+  }
+  .tag {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full bg-sage-light text-sage-dark text-xs font-medium;
+  }
+</style>
+
+<script>
+  const chips = document.querySelectorAll<HTMLButtonElement>('.filter-chip');
+  const cards = document.querySelectorAll<HTMLElement>('#doc-grid .doc-card');
+  chips.forEach((chip) => {
+    chip.addEventListener('click', () => {
+      chips.forEach((c) => c.classList.remove('on'));
+      chip.classList.add('on');
+      const f = chip.dataset.filter;
+      cards.forEach((card) => {
+        card.style.display = f === 'all' || card.dataset.cat === f ? '' : 'none';
+      });
+    });
+  });
+</script>
