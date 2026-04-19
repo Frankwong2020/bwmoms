@@ -13,21 +13,22 @@ const { itemType, itemId } = Astro.props;
   data-item-type={itemType}
   data-item-id={itemId}
 >
-  <!-- Summary: shows avg stars + count, always visible -->
-  <div class="flex items-center justify-between gap-3">
-    <div class="flex items-center gap-2 text-sm">
-      <div class="stars-summary flex gap-0.5 text-lg leading-none text-ink-muted">
+  <!-- Summary row: entire row is the toggle button -->
+  <button
+    type="button"
+    class="toggle-feedback w-full flex items-center justify-between gap-3 text-left hover:bg-sage-light/40 rounded-chip -mx-1 px-1 py-1 transition"
+    aria-label="展开评分和评论"
+  >
+    <span class="flex items-center gap-2 text-sm">
+      <span class="stars-summary flex gap-0.5 text-lg leading-none text-ink-muted">
         <span>☆</span><span>☆</span><span>☆</span><span>☆</span><span>☆</span>
-      </div>
+      </span>
       <span class="text-xs text-ink-muted summary-text">暂无评分</span>
-    </div>
-    <button
-      type="button"
-      class="toggle-feedback text-xs text-sage-dark hover:text-sage font-medium"
-    >
+    </span>
+    <span class="text-xs text-sage-dark font-medium shrink-0">
       💬 评分 / 评论
-    </button>
-  </div>
+    </span>
+  </button>
 
   <!-- Expandable panel (hidden by default) -->
   <div class="feedback-panel hidden mt-4 space-y-4">
