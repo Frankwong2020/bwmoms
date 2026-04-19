@@ -100,7 +100,7 @@ function renderCommentNode(
   const name = c.profile?.display_name || '匿名用户';
   const date = new Date(c.created_at).toLocaleDateString('zh-CN');
   const avatar = c.profile?.avatar_url
-    ? `<img src="${c.profile.avatar_url}" class="w-5 h-5 rounded-full inline-block mr-1 align-text-bottom" alt="">`
+    ? `<img src="${c.profile.avatar_url}" referrerpolicy="no-referrer" onerror="this.style.display='none'" class="w-5 h-5 rounded-full inline-block mr-1 align-text-bottom" alt="">`
     : '';
 
   const isOwner = currentUserId === c.user_id;

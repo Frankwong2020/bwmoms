@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import Header from '../components/Header.astro';
 import Hero from '../components/Hero.astro';
 import ItemFeedback from '../components/ItemFeedback.astro';
+import ItemActions from '../components/ItemActions.astro';
 import playData from '../data/play.json';
 
 type Play = {
@@ -60,21 +61,26 @@ const otherSections = sections.filter((s) => s !== '遛娃圣地');
       </h2>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="play-grid">
         {mainList.map((p) => (
-          <article class="play-card bg-white rounded-card shadow-soft p-5 hover:shadow-hover transition cursor-pointer" data-vibe={vibe(p)}>
+          <article
+            class="play-card bg-white rounded-card shadow-soft p-5 hover:shadow-hover transition"
+            data-item-card
+            data-item-type="play"
+            data-item-id={p.id}
+            data-vibe={vibe(p)}
+          >
             <div class="flex items-start justify-between gap-2 mb-2">
-              <h3 class="font-semibold text-ink leading-tight flex-1">{p.name}</h3>
+              <h3 class="font-semibold text-ink leading-tight flex-1" data-field="name">{p.name}</h3>
               <span class="text-xs text-ink-muted shrink-0">#{p.num}</span>
             </div>
             <div class="flex flex-wrap gap-2 mt-3 mb-3">
-              {p.drive && <span class="tag">🚗 {p.drive}</span>}
-              {p.price && <span class="tag tag-warm">{p.price}</span>}
+              <span class:list={['tag', { 'hidden': !p.drive }]} data-field-wrapper="drive">🚗 <span data-field="drive">{p.drive}</span></span>
+              <span class:list={['tag', 'tag-warm', { 'hidden': !p.price }]} data-field-wrapper="price"><span data-field="price">{p.price}</span></span>
             </div>
-            {p.tips && (
-              <p class="text-sm text-ink-light mt-2 leading-relaxed">{p.tips}</p>
-            )}
+            <p class:list={['text-sm text-ink-light mt-2 leading-relaxed', { 'hidden': !p.tips }]} data-field="tips">{p.tips}</p>
             <a href={mapLink(p.name)} target="_blank" rel="noopener" class="text-xs text-sage-dark hover:text-sage font-medium mt-3 inline-flex items-center gap-1">
               <span>📍 Google Maps</span>
             </a>
+            <ItemActions itemType="play" itemId={p.id} />
             <ItemFeedback itemType="play" itemId={p.id} />
           </article>
         ))}
@@ -89,15 +95,18 @@ const otherSections = sections.filter((s) => s !== '遛娃圣地');
           <h2 class="text-xl font-serif font-bold mb-4">🍁 {sec}</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             {items.map((p) => (
-              <article class="bg-white rounded-card shadow-soft p-5">
-                <h3 class="font-semibold text-ink leading-tight">{p.name}</h3>
+              <article
+                class="bg-white rounded-card shadow-soft p-5"
+                data-item-card
+                data-item-type="play"
+                data-item-id={p.id}
+              >
+                <h3 class="font-semibold text-ink leading-tight" data-field="name">{p.name}</h3>
                 <div class="flex flex-wrap gap-2 mt-2 mb-2">
-                  {p.drive && <span class="tag">🚗 {p.drive}</span>}
-                  {p.price && <span class="tag tag-warm">{p.price}</span>}
+                  <span class:list={['tag', { 'hidden': !p.drive }]}>🚗 <span data-field="drive">{p.drive}</span></span>
+                  <span class:list={['tag', 'tag-warm', { 'hidden': !p.price }]}><span data-field="price">{p.price}</span></span>
                 </div>
-                {p.tips && (
-                  <p class="text-sm text-ink-light leading-relaxed">{p.tips}</p>
-                )}
+                <p class:list={['text-sm text-ink-light leading-relaxed', { 'hidden': !p.tips }]} data-field="tips">{p.tips}</p>
                 <a href={mapLink(p.name)} target="_blank" rel="noopener" class="text-xs text-sage-dark hover:text-sage font-medium mt-2 inline-flex items-center gap-1">
                   <span>📍 Google Maps</span>
                 </a>
@@ -113,6 +122,10 @@ const otherSections = sections.filter((s) => s !== '遛娃圣地');
 
 <script>
   import '../lib/feedback';
+  import '../lib/hydrate-items';
+  import '../lib/edit-item';
+  import '../lib/history';
+  import '../lib/flag';
 </script>
 
 <style>

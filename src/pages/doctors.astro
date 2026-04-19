@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import Header from '../components/Header.astro';
 import ItemFeedback from '../components/ItemFeedback.astro';
+import ItemActions from '../components/ItemActions.astro';
 import doctorsData from '../data/doctors.json';
 
 type Review = { date: string; tag: string; text: string };
@@ -43,24 +44,24 @@ function mapLink(addr: string) {
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" id="doc-grid">
       {doctors.map((d) => (
-        <article class="doc-card bg-white rounded-card shadow-soft p-5" data-cat={d.category}>
+        <article
+          class="doc-card bg-white rounded-card shadow-soft p-5"
+          data-item-card
+          data-item-type="doctor"
+          data-item-id={d.id}
+          data-cat={d.category}
+        >
           <div class="flex items-baseline justify-between gap-2 mb-2">
-            <h3 class="font-semibold text-ink text-lg leading-tight">{d.name}</h3>
-            <span class="tag shrink-0">{d.category}</span>
+            <h3 class="font-semibold text-ink text-lg leading-tight" data-field="name">{d.name}</h3>
+            <span class="tag shrink-0" data-field="category">{d.category}</span>
           </div>
           <div class="text-sm text-ink-light space-y-1 mb-3">
-            {d.address && (
-              <p>
-                📍 <a href={mapLink(d.address)} target="_blank" rel="noopener" class="hover:text-sage-dark">{d.address}</a>
-              </p>
-            )}
-            {d.phone && (
-              <p>
-                📞 {telLink(d.phone) ? (
-                  <a href={telLink(d.phone)!} class="hover:text-sage-dark">{d.phone}</a>
-                ) : d.phone}
-              </p>
-            )}
+            <p class:list={{ 'hidden': !d.address }}>
+              📍 <span data-field="address">{d.address}</span>
+            </p>
+            <p class:list={{ 'hidden': !d.phone }}>
+              📞 <span data-field="phone">{d.phone}</span>
+            </p>
           </div>
           {d.reviews.length > 0 && (
             <details class="mt-3">
@@ -82,6 +83,7 @@ function mapLink(addr: string) {
               </div>
             </details>
           )}
+          <ItemActions itemType="doctor" itemId={d.id} />
           <ItemFeedback itemType="doctor" itemId={d.id} />
         </article>
       ))}
@@ -91,6 +93,10 @@ function mapLink(addr: string) {
 
 <script>
   import '../lib/feedback';
+  import '../lib/hydrate-items';
+  import '../lib/edit-item';
+  import '../lib/history';
+  import '../lib/flag';
 </script>
 
 <style>

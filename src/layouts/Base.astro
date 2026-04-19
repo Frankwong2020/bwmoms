@@ -1,4 +1,8 @@
 ---
+import ItemEditor from '../components/ItemEditor.astro';
+import ItemHistory from '../components/ItemHistory.astro';
+import FlagModal from '../components/FlagModal.astro';
+
 export interface Props {
   title?: string;
   description?: string;
@@ -32,6 +36,9 @@ const {
         <span>欢迎 PR 贡献新推荐</span>
       </p>
     </footer>
+    <ItemEditor />
+    <ItemHistory />
+    <FlagModal />
   </body>
 </html>
 

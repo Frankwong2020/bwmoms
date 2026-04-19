@@ -23,7 +23,17 @@
 
   <!-- Signed in view -->
   <div data-auth-user class="hidden items-center gap-2">
-    <img data-auth-avatar src="" alt="avatar" class="w-8 h-8 rounded-full bg-sage-light" />
+    <img
+      data-auth-avatar
+      src=""
+      alt=""
+      referrerpolicy="no-referrer"
+      class="w-8 h-8 rounded-full bg-sage-light object-cover"
+    />
+    <div
+      data-auth-avatar-fallback
+      class="hidden w-8 h-8 rounded-full bg-sage text-white items-center justify-center text-sm font-medium"
+    ></div>
     <span data-auth-name class="text-sm font-medium text-ink hidden md:inline"></span>
     <button
       type="button"
@@ -44,6 +54,7 @@
     const signinBtn = root.querySelector<HTMLButtonElement>('[data-auth-signin]');
     const userBox = root.querySelector<HTMLElement>('[data-auth-user]');
     const avatarImg = root.querySelector<HTMLImageElement>('[data-auth-avatar]');
+    const avatarFallback = root.querySelector<HTMLElement>('[data-auth-avatar-fallback]');
     const nameSpan = root.querySelector<HTMLElement>('[data-auth-name]');
     const signoutBtn = root.querySelector<HTMLButtonElement>('[data-auth-signout]');
 
@@ -57,8 +68,30 @@
         const m = session.user.user_metadata as Record<string, string>;
         const name = m.full_name || m.name || session.user.email?.split('@')[0] || '';
         const avatar = m.avatar_url || '';
+        const initial = (name || '?').trim().charAt(0).toUpperCase();
         if (nameSpan) nameSpan.textContent = name;
-        if (avatarImg && avatar) avatarImg.src = avatar;
+        if (avatarFallback) avatarFallback.textContent = initial;
+
+        const showFallback = () => {
+          avatarImg?.classList.add('hidden');
+          avatarFallback?.classList.remove('hidden');
+          avatarFallback?.classList.add('flex');
+        };
+        const showImg = () => {
+          avatarImg?.classList.remove('hidden');
+          avatarFallback?.classList.add('hidden');
+          avatarFallback?.classList.remove('flex');
+        };
+
+        if (avatarImg) {
+          if (avatar) {
+            avatarImg.onerror = showFallback;
+            avatarImg.onload = showImg;
+            avatarImg.src = avatar;
+          } else {
+            showFallback();
+          }
+        }
       } else {
         userBox?.classList.add('hidden');
         userBox?.classList.remove('flex');

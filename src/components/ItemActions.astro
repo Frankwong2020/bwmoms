@@ -1,0 +1,40 @@
+---
+// Small row of action buttons for each item card: Edit, History, Report.
+// Shown inline in the card (near bottom, above ItemFeedback).
+export interface Props {
+  itemType: 'play' | 'doctor' | 'service' | 'class' | 'streaming';
+  itemId: string;
+}
+const { itemType, itemId } = Astro.props;
+---
+
+<div class="flex flex-wrap gap-2 mt-3 text-xs">
+  <button
+    type="button"
+    data-edit-item
+    class="text-sage-dark hover:text-sage font-medium"
+    aria-label="编辑此条目"
+  >
+    ✏️ 编辑
+  </button>
+  <button
+    type="button"
+    data-history-item
+    data-item-type={itemType}
+    data-item-id={itemId}
+    class="text-ink-muted hover:text-ink-light font-medium"
+    aria-label="查看编辑历史"
+  >
+    📜 历史
+  </button>
+  <button
+    type="button"
+    data-flag-item
+    data-target-type="item"
+    data-target-id={itemId}
+    class="text-ink-muted hover:text-warm font-medium"
+    aria-label="举报此条目"
+  >
+    🚩 举报
+  </button>
+</div>

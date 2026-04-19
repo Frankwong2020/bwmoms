@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import Header from '../components/Header.astro';
 import ItemFeedback from '../components/ItemFeedback.astro';
+import ItemActions from '../components/ItemActions.astro';
 import data from '../data/classes.json';
 
 type Klass = {
@@ -35,19 +36,26 @@ const categories = [...new Set(classes.map((c) => c.category).filter(Boolean))];
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="class-grid">
       {classes.map((c) => (
-        <article class="class-card bg-white rounded-card shadow-soft p-5" data-cat={c.category}>
+        <article
+          class="class-card bg-white rounded-card shadow-soft p-5"
+          data-item-card
+          data-item-type="class"
+          data-item-id={c.id}
+          data-cat={c.category}
+        >
           <div class="flex items-baseline justify-between gap-2 mb-2">
-            <span class="tag">{c.category}</span>
+            <span class="tag" data-field="category">{c.category}</span>
           </div>
-          <h3 class="font-semibold text-ink leading-tight mb-2">{c.org}</h3>
-          {c.location && <p class="text-sm text-ink-light">📍 {c.location}</p>}
-          {c.time && <p class="text-sm text-ink-light mt-1">📅 {c.time}</p>}
-          {c.price && <p class="text-sm text-warm mt-1 font-medium">💵 {c.price}</p>}
+          <h3 class="font-semibold text-ink leading-tight mb-2" data-field="org">{c.org}</h3>
+          <p class:list={['text-sm text-ink-light', { 'hidden': !c.location }]}>📍 <span data-field="location">{c.location}</span></p>
+          <p class:list={['text-sm text-ink-light mt-1', { 'hidden': !c.time }]}>📅 <span data-field="time">{c.time}</span></p>
+          <p class:list={['text-sm text-warm mt-1 font-medium', { 'hidden': !c.price }]}>💵 <span data-field="price">{c.price}</span></p>
           {c.link && (
             <a href={c.link} target="_blank" rel="noopener" class="text-xs text-sage-dark hover:text-sage font-medium mt-3 inline-block">
               🔗 报名链接
             </a>
           )}
+          <ItemActions itemType="class" itemId={c.id} />
           <ItemFeedback itemType="class" itemId={c.id} />
         </article>
       ))}
@@ -57,6 +65,10 @@ const categories = [...new Set(classes.map((c) => c.category).filter(Boolean))];
 
 <script>
   import '../lib/feedback';
+  import '../lib/hydrate-items';
+  import '../lib/edit-item';
+  import '../lib/history';
+  import '../lib/flag';
 </script>
 
 <style>
