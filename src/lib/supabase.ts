@@ -37,6 +37,8 @@ export interface Comment {
   body: string;
   created_at: string;
   updated_at: string;
+  edited_at: string | null;
+  deleted_at: string | null;
   profile?: Profile;
 }
 

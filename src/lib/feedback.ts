@@ -34,27 +34,206 @@ function renderUserRating(block: FB, stars: number | null) {
   renderStars(picker, stars ?? 0);
 }
 
-function renderComments(block: FB, comments: Comment[]) {
+const PAGE_SIZE = 5;
+// Per-block state: how many comments to show. Keys by item_type:item_id.
+const visibleCountMap = new Map<string, number>();
+// Per-block state: which comment is currently being edited.
+const editingMap = new Map<string, string>(); // key -> comment.id
+
+function blockKey(block: FB): string {
+  return `${block.dataset.itemType}:${block.dataset.itemId}`;
+}
+
+function renderComments(block: FB, comments: Comment[], currentUserId: string | null) {
   const list = block.querySelector<HTMLElement>('.comments-list')!;
   list.innerHTML = '';
+
   if (comments.length === 0) {
     list.innerHTML = '<p class="text-xs text-ink-muted">还没有评论，做第一个吧</p>';
     return;
   }
-  for (const c of comments) {
-    const div = document.createElement('div');
-    div.className = 'text-sm border-l-2 border-sage-light pl-3 py-1';
-    const name = c.profile?.display_name || '匿名用户';
-    const date = new Date(c.created_at).toLocaleDateString('zh-CN');
-    const avatar = c.profile?.avatar_url
-      ? `<img src="${c.profile.avatar_url}" class="w-5 h-5 rounded-full inline-block mr-1 align-text-bottom" alt="">`
-      : '';
-    div.innerHTML = `
-      <div class="text-xs text-ink-muted mb-1">${avatar}<span class="font-medium">${escapeHtml(name)}</span> · ${date}</div>
-      <p class="text-ink-light leading-relaxed whitespace-pre-wrap">${escapeHtml(c.body)}</p>
-    `;
-    list.appendChild(div);
+
+  const key = blockKey(block);
+  const visibleCount = visibleCountMap.get(key) ?? PAGE_SIZE;
+  const editingId = editingMap.get(key);
+  const visible = comments.slice(0, visibleCount);
+
+  for (const c of visible) {
+    list.appendChild(renderCommentNode(block, c, currentUserId, editingId === c.id, comments));
   }
+
+  // "Show all" toggle if more comments exist
+  if (comments.length > visibleCount) {
+    const more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'text-xs text-sage-dark hover:text-sage font-medium mt-1';
+    more.textContent = `显示全部 ${comments.length} 条评论`;
+    more.addEventListener('click', () => {
+      visibleCountMap.set(key, comments.length);
+      renderComments(block, comments, currentUserId);
+    });
+    list.appendChild(more);
+  } else if (visibleCount > PAGE_SIZE && comments.length > PAGE_SIZE) {
+    // "Collapse" toggle back to PAGE_SIZE
+    const less = document.createElement('button');
+    less.type = 'button';
+    less.className = 'text-xs text-ink-muted hover:text-ink-light font-medium mt-1';
+    less.textContent = '收起';
+    less.addEventListener('click', () => {
+      visibleCountMap.set(key, PAGE_SIZE);
+      renderComments(block, comments, currentUserId);
+    });
+    list.appendChild(less);
+  }
+}
+
+function renderCommentNode(
+  block: FB,
+  c: Comment,
+  currentUserId: string | null,
+  editing: boolean,
+  allComments: Comment[]
+): HTMLElement {
+  const div = document.createElement('div');
+  div.className = 'text-sm border-l-2 border-sage-light pl-3 py-1';
+
+  const name = c.profile?.display_name || '匿名用户';
+  const date = new Date(c.created_at).toLocaleDateString('zh-CN');
+  const avatar = c.profile?.avatar_url
+    ? `<img src="${c.profile.avatar_url}" class="w-5 h-5 rounded-full inline-block mr-1 align-text-bottom" alt="">`
+    : '';
+
+  const isOwner = currentUserId === c.user_id;
+  const isDeleted = c.deleted_at !== null;
+  const isEdited = c.edited_at !== null;
+
+  // Header row: avatar + name + date + (edited tag) + action buttons
+  const header = document.createElement('div');
+  header.className = 'text-xs text-ink-muted mb-1 flex items-center gap-2 flex-wrap';
+  header.innerHTML = `${avatar}<span class="font-medium">${escapeHtml(name)}</span><span>·</span><span>${date}</span>`;
+  if (isEdited && !isDeleted) {
+    const tag = document.createElement('span');
+    tag.className = 'text-ink-muted italic';
+    tag.textContent = '（已编辑）';
+    header.appendChild(tag);
+  }
+  if (isOwner && !isDeleted && !editing) {
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'ml-auto text-sage-dark hover:text-sage';
+    editBtn.textContent = '编辑';
+    editBtn.addEventListener('click', () => {
+      editingMap.set(blockKey(block), c.id);
+      renderComments(block, allComments, currentUserId);
+    });
+    header.appendChild(editBtn);
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'text-warm hover:opacity-70';
+    delBtn.textContent = '删除';
+    delBtn.addEventListener('click', () => void handleDelete(block, c));
+    header.appendChild(delBtn);
+  }
+  div.appendChild(header);
+
+  // Body
+  if (isDeleted) {
+    const p = document.createElement('p');
+    p.className = 'text-ink-muted italic leading-relaxed';
+    p.textContent = '此评论已被作者删除';
+    div.appendChild(p);
+  } else if (editing) {
+    const form = document.createElement('form');
+    form.className = 'space-y-2';
+
+    const ta = document.createElement('textarea');
+    ta.className =
+      'w-full px-3 py-2 text-sm border border-black/10 rounded-chip focus:outline-none focus:border-sage resize-y min-h-[64px]';
+    ta.value = c.body;
+    ta.maxLength = 2000;
+    ta.required = true;
+    form.appendChild(ta);
+
+    const row = document.createElement('div');
+    row.className = 'flex gap-2 justify-end';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className =
+      'px-3 py-1 rounded-chip bg-white border border-black/10 text-xs hover:bg-sage-light';
+    cancelBtn.textContent = '取消';
+    cancelBtn.addEventListener('click', () => {
+      editingMap.delete(blockKey(block));
+      renderComments(block, allComments, currentUserId);
+    });
+    row.appendChild(cancelBtn);
+
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'submit';
+    saveBtn.className =
+      'px-4 py-1 rounded-chip bg-sage text-white text-xs font-medium hover:bg-sage-dark disabled:opacity-50';
+    saveBtn.textContent = '保存';
+    row.appendChild(saveBtn);
+    form.appendChild(row);
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = ta.value.trim();
+      if (!body || body === c.body) {
+        editingMap.delete(blockKey(block));
+        renderComments(block, allComments, currentUserId);
+        return;
+      }
+      saveBtn.disabled = true;
+      await handleEdit(block, c, body);
+    });
+
+    div.appendChild(form);
+  } else {
+    const p = document.createElement('p');
+    p.className = 'text-ink-light leading-relaxed whitespace-pre-wrap';
+    p.textContent = c.body;
+    div.appendChild(p);
+  }
+
+  return div;
+}
+
+async function handleEdit(block: FB, c: Comment, newBody: string) {
+  const { error } = await supabase
+    .from('comments')
+    .update({ body: newBody, edited_at: new Date().toISOString() })
+    .eq('id', c.id);
+  if (error) {
+    console.error('edit comment', error);
+    alert('编辑失败：' + error.message);
+    return;
+  }
+  editingMap.delete(blockKey(block));
+  const itemType = block.dataset.itemType as ItemType;
+  const itemId = block.dataset.itemId!;
+  const comments = await loadComments(itemType, itemId);
+  const uid = (await getSession())?.user.id ?? null;
+  renderComments(block, comments, uid);
+}
+
+async function handleDelete(block: FB, c: Comment) {
+  if (!confirm('确定删除这条评论吗？（标记为已删除，历史记录保留）')) return;
+  const { error } = await supabase
+    .from('comments')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', c.id);
+  if (error) {
+    console.error('delete comment', error);
+    alert('删除失败：' + error.message);
+    return;
+  }
+  const itemType = block.dataset.itemType as ItemType;
+  const itemId = block.dataset.itemId!;
+  const comments = await loadComments(itemType, itemId);
+  const uid = (await getSession())?.user.id ?? null;
+  renderComments(block, comments, uid);
 }
 
 function escapeHtml(s: string) {
@@ -66,7 +245,7 @@ function escapeHtml(s: string) {
 async function loadComments(itemType: ItemType, itemId: string): Promise<Comment[]> {
   const { data: rows, error } = await supabase
     .from('comments')
-    .select('id, user_id, item_type, item_id, body, created_at, updated_at')
+    .select('id, user_id, item_type, item_id, body, created_at, updated_at, edited_at, deleted_at')
     .eq('item_type', itemType)
     .eq('item_id', itemId)
     .order('created_at', { ascending: false });
@@ -204,7 +383,8 @@ function bindBlock(block: FB) {
     if (wasHidden && !commentsLoaded) {
       commentsLoaded = true;
       const comments = await loadComments(itemType, itemId);
-      renderComments(block, comments);
+      const uid = (await getSession())?.user.id ?? null;
+      renderComments(block, comments, uid);
     }
   });
 
@@ -264,7 +444,7 @@ function bindBlock(block: FB) {
     }
     textarea.value = '';
     const comments = await loadComments(itemType, itemId);
-    renderComments(block, comments);
+    renderComments(block, comments, session.user.id);
   });
 }
 
