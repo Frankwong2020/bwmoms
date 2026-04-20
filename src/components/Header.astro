@@ -7,11 +7,11 @@ export interface Props {
 const { activeTab = 'play' } = Astro.props;
 
 const tabs = [
-  { id: 'play', href: '/', emoji: '🎈', label: '遛娃地点' },
+  { id: 'home', href: '/', emoji: '📰', label: '最近活动' },
+  { id: 'play', href: '/play', emoji: '🎈', label: '遛娃地点' },
   { id: 'doctors', href: '/doctors', emoji: '👨‍⚕️', label: '医生' },
   { id: 'services', href: '/services', emoji: '🔧', label: '维修师傅' },
   { id: 'classes', href: '/classes', emoji: '🎨', label: '课外班' },
-  { id: 'recent', href: '/recent', emoji: '📰', label: '最近活动' },
   { id: 'retirement', href: '/retirement', emoji: '💰', label: '理财' },
   { id: 'streaming', href: '/streaming', emoji: '📺', label: '影视' },
 ];

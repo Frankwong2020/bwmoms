@@ -30,6 +30,7 @@ function actionsAndFeedback(item: DbItem): string {
   const { item_type, id } = item;
   return `
     <div class="flex flex-wrap gap-2 mt-3 text-xs">
+      <button type="button" data-share-item class="text-sage-dark hover:text-sage font-medium">🔗 分享</button>
       <button type="button" data-edit-item class="text-sage-dark hover:text-sage font-medium">✏️ 编辑</button>
       <button type="button" data-history-item data-item-type="${item_type}" data-item-id="${esc(id)}" class="text-ink-muted hover:text-ink-light font-medium">📜 历史</button>
       <button type="button" data-flag-item data-target-type="item" data-target-id="${esc(id)}" class="text-ink-muted hover:text-warm font-medium">🚩 举报</button>

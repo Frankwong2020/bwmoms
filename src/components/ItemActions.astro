@@ -11,6 +11,14 @@ const { itemType, itemId } = Astro.props;
 <div class="flex flex-wrap gap-2 mt-3 text-xs">
   <button
     type="button"
+    data-share-item
+    class="text-sage-dark hover:text-sage font-medium"
+    aria-label="分享此条目"
+  >
+    🔗 分享
+  </button>
+  <button
+    type="button"
     data-edit-item
     class="text-sage-dark hover:text-sage font-medium"
     aria-label="编辑此条目"

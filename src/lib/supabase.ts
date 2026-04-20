@@ -17,7 +17,7 @@ export const supabase: SupabaseClient = createClient(url, anonKey, {
   },
 });
 
-export type ItemType = 'play' | 'doctor' | 'service' | 'class' | 'streaming';
+export type ItemType = 'play' | 'doctor' | 'service' | 'class' | 'streaming' | 'event';
 
 export interface Rating {
   id: string;

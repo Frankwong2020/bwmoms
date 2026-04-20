@@ -6,7 +6,7 @@ import { itemCache, refreshItem } from './hydrate-items';
 interface FieldSpec {
   key: string;
   label: string;
-  type: 'text' | 'textarea' | 'select';
+  type: 'text' | 'textarea' | 'select' | 'datetime-local';
   required?: boolean;
   options?: string[];      // for 'select'
   placeholder?: string;
@@ -45,6 +45,17 @@ const SCHEMAS: Record<ItemType, FieldSpec[]> = {
     { key: 'domain', label: '网站名', type: 'text', required: true },
     { key: 'url', label: 'URL', type: 'text', required: true },
   ],
+  event: [
+    { key: 'title', label: '活动标题', type: 'text', required: true, placeholder: 'YMCA 周末攀岩' },
+    { key: 'start_date', label: '开始时间', type: 'datetime-local', required: true },
+    { key: 'end_date', label: '结束时间', type: 'datetime-local', hint: '留空表示当天一次性活动' },
+    { key: 'location', label: '地点', type: 'text', required: true, placeholder: 'YMCA, Bridgewater / 活动地址' },
+    { key: 'category', label: '类型', type: 'text', placeholder: '攀岩 / 游泳 / 讲座 / 讨论 / 户外 / 艺术 等' },
+    { key: 'age_range', label: '适合年龄', type: 'select', options: ['', '0-3岁', '3-6岁', '6-12岁', '12岁+', '全年龄'] },
+    { key: 'price', label: '价格', type: 'text', placeholder: 'Free / $20 per kid' },
+    { key: 'link', label: '报名/详情链接', type: 'text', placeholder: 'https://...' },
+    { key: 'description', label: '活动描述', type: 'textarea', required: true, placeholder: '活动内容、注意事项、自备物品...' },
+  ],
 };
 
 type Mode = 'edit' | 'create';
@@ -58,6 +69,16 @@ const NEW_USER_WINDOW_MS = 24 * 60 * 60 * 1000;  // 24 hours
 const NEW_USER_DAILY_LIMIT = 3;
 const ESTABLISHED_USER_DAILY_LIMIT = 10;
 
+// Default datetime-local value formatted as "YYYY-MM-DDTHH:mm" in user's local tz
+function defaultDateTime(key: string): string {
+  const now = new Date();
+  // Start at next full hour (today); end one hour later
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(),
+    now.getHours() + (key === 'end_date' ? 2 : 1), 0);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function renderFields(type: ItemType, data: Record<string, unknown>) {
   const container = document.getElementById('editor-fields')!;
   container.innerHTML = '';
@@ -68,18 +89,37 @@ function renderFields(type: ItemType, data: Record<string, unknown>) {
     label.textContent = spec.label + (spec.required ? ' *' : '');
     wrap.appendChild(label);
 
-    let input: HTMLInputElement | HTMLTextAreaElement;
+    let input: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
     if (spec.type === 'textarea') {
       input = document.createElement('textarea');
-      input.rows = 3;
+      (input as HTMLTextAreaElement).rows = 3;
+    } else if (spec.type === 'datetime-local') {
+      input = document.createElement('input');
+      (input as HTMLInputElement).type = 'datetime-local';
+    } else if (spec.type === 'select') {
+      input = document.createElement('select');
+      for (const opt of spec.options || []) {
+        const o = document.createElement('option');
+        o.value = opt;
+        o.textContent = opt || '（不指定）';
+        (input as HTMLSelectElement).appendChild(o);
+      }
     } else {
       input = document.createElement('input');
-      input.type = 'text';
+      (input as HTMLInputElement).type = 'text';
     }
     input.name = spec.key;
     if (spec.required) input.required = true;
-    if (spec.placeholder) input.placeholder = spec.placeholder;
-    input.value = (data[spec.key] as string) || '';
+    if (spec.placeholder && 'placeholder' in input) input.placeholder = spec.placeholder;
+
+    // Determine initial value: existing data wins, else type-specific default
+    let initial = (data[spec.key] as string) || '';
+    if (!initial && spec.type === 'datetime-local') {
+      // Default start_date = today 10:00; end_date = today 12:00 (local time)
+      initial = defaultDateTime(spec.key);
+    }
+    input.value = initial;
+
     input.className =
       'w-full px-3 py-2 text-sm border border-black/10 rounded-chip focus:outline-none focus:border-sage resize-y';
     wrap.appendChild(input);
@@ -101,6 +141,7 @@ const TYPE_LABELS: Record<ItemType, string> = {
   service: '维修师傅',
   class: '课外班',
   streaming: '影视网站',
+  event: '活动',
 };
 
 function openModal(
@@ -140,6 +181,30 @@ function openModal(
 
   commentInput.value = '';
 
+  // Restore draft if one exists for this item
+  const draft = loadDraft();
+  if (draft) {
+    const hasContent = Object.values(draft).some((v) => v && v.trim());
+    if (hasContent) {
+      const container = document.getElementById('editor-fields')!;
+      for (const [key, val] of Object.entries(draft)) {
+        if (key === 'edit_comment') {
+          commentInput.value = val;
+        } else {
+          const el = container.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[name="${key}"]`);
+          if (el) el.value = val;
+        }
+      }
+      // Show a subtle indicator that draft was restored
+      const existingNote = modalEl.querySelector('.draft-restored-note');
+      if (existingNote) existingNote.remove();
+      const note = document.createElement('p');
+      note.className = 'draft-restored-note text-xs text-sage-dark italic mb-2';
+      note.textContent = '💾 已恢复上次未保存的草稿';
+      container.insertBefore(note, container.firstChild);
+    }
+  }
+
   const errEl = modalEl.querySelector<HTMLElement>('#editor-error')!;
   errEl.classList.add('hidden');
   errEl.textContent = '';
@@ -154,6 +219,58 @@ function closeModal() {
   modalEl.classList.remove('flex');
   currentItemType = null;
   currentItemId = null;
+}
+
+function draftKey(): string {
+  return `bwmoms-draft-${currentMode}-${currentItemType}-${currentItemId ?? 'new'}`;
+}
+
+function hasAnyInput(): boolean {
+  if (!modalEl) return false;
+  const inputs = modalEl.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+    '#editor-fields [name], input[name="edit_comment"]'
+  );
+  return Array.from(inputs).some((el) => el.value.trim().length > 0);
+}
+
+function saveDraft() {
+  if (!modalEl || !currentItemType) return;
+  const data: Record<string, string> = {};
+  modalEl.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
+    '#editor-fields [name], input[name="edit_comment"]'
+  ).forEach((el) => {
+    data[el.name] = el.value;
+  });
+  try {
+    localStorage.setItem(draftKey(), JSON.stringify(data));
+  } catch {}
+}
+
+function loadDraft(): Record<string, string> | null {
+  if (!currentItemType) return null;
+  try {
+    const raw = localStorage.getItem(draftKey());
+    if (!raw) return null;
+    return JSON.parse(raw) as Record<string, string>;
+  } catch {
+    return null;
+  }
+}
+
+function clearDraft() {
+  if (!currentItemType) return;
+  try { localStorage.removeItem(draftKey()); } catch {}
+}
+
+function confirmClose() {
+  if (hasAnyInput()) {
+    const ok = confirm('你有未保存的输入，确定要关闭吗？（草稿已自动保存，下次打开会恢复）');
+    if (!ok) return;
+    // User confirms close - keep draft in localStorage so they can recover
+  } else {
+    clearDraft();
+  }
+  closeModal();
 }
 
 function readForm(type: ItemType): Record<string, string> {
@@ -210,6 +327,7 @@ async function handleSubmit(ev: Event) {
 
   // Skip no-op edits
   if (JSON.stringify(afterData) === JSON.stringify(beforeData)) {
+    clearDraft();
     closeModal();
     return;
   }
@@ -250,6 +368,7 @@ async function handleSubmit(ev: Event) {
   // Refresh card display
   await refreshItem(currentItemType, currentItemId);
   submitBtn.disabled = false;
+  clearDraft();
   closeModal();
 }
 
@@ -342,6 +461,7 @@ async function handleCreate(
   });
 
   submitBtn.disabled = false;
+  clearDraft();
   closeModal();
 
   // Reload page so the new card appears (simplest reliable way)
@@ -400,19 +520,26 @@ function init() {
   modalEl = document.getElementById('item-editor');
   if (!modalEl) return;
 
-  // Wire modal controls
-  modalEl.querySelector('#editor-close')?.addEventListener('click', closeModal);
-  modalEl.querySelector('#editor-cancel')?.addEventListener('click', closeModal);
+  // Wire modal controls (X and Cancel buttons confirm if form has content)
+  modalEl.querySelector('#editor-close')?.addEventListener('click', () => confirmClose());
+  modalEl.querySelector('#editor-cancel')?.addEventListener('click', () => confirmClose());
   modalEl.querySelector('#editor-form')?.addEventListener('submit', (e) => void handleSubmit(e));
 
-  // Click on backdrop closes
-  modalEl.addEventListener('click', (e) => {
-    if (e.target === modalEl) closeModal();
+  // Auto-save draft on input (debounced)
+  let draftTimer: number | undefined;
+  modalEl.addEventListener('input', () => {
+    if (draftTimer) window.clearTimeout(draftTimer);
+    draftTimer = window.setTimeout(() => saveDraft(), 500);
   });
 
-  // ESC closes
+  // Backdrop click: do NOT close (user has been losing data from accidental clicks)
+  // If user really wants to close, use X / Cancel / Escape.
+
+  // ESC confirms if form has content
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !modalEl!.classList.contains('hidden')) closeModal();
+    if (e.key === 'Escape' && !modalEl!.classList.contains('hidden')) {
+      confirmClose();
+    }
   });
 
   bindEditButtons();

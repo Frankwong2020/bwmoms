@@ -2,175 +2,91 @@
 import Base from '../layouts/Base.astro';
 import Header from '../components/Header.astro';
 import Hero from '../components/Hero.astro';
-import ItemFeedback from '../components/ItemFeedback.astro';
-import ItemActions from '../components/ItemActions.astro';
-import playData from '../data/play.json';
+import recentStatic from '../data/recent.json';
 
-type Play = {
-  id: string;
-  num: number;
-  name: string;
-  drive: string;
-  price: string;
-  tips: string;
-  section: string;
-};
-const play = playData as Play[];
-
-const sections = [...new Set(play.map((p) => p.section))];
-
-// Infer a quick "vibe" per entry for filtering
-function vibe(p: Play) {
-  const s = (p.name + ' ' + p.tips).toLowerCase();
-  if (/trampoline|bowl|arcade|kid|indoor|gym|climb|museum|博物|图书/i.test(s)) return 'indoor';
-  if (/beach|海|滩/i.test(s)) return 'beach';
-  if (/zoo|aquarium|safari|park|park,|park$|公园|植物|garden|farm|农|pick/i.test(s)) return 'outdoor';
-  if (/pool|swim|water|泳/i.test(s)) return 'water';
-  return 'other';
-}
-
-function mapLink(name: string) {
-  const q = encodeURIComponent(name);
-  return `https://www.google.com/maps/search/?api=1&query=${q}`;
-}
-
-const mainList = play.filter((p) => p.section === '遛娃圣地');
-const otherSections = sections.filter((s) => s !== '遛娃圣地');
+type Block = { title: string; items: string[] };
+const staticBlocks = recentStatic as Block[];
 ---
 
-<Base>
-  <Header activeTab="play" />
+<Base title="桥水小娃群 · 最近活动">
+  <Header activeTab="home" />
   <Hero />
 
-  <main class="max-w-6xl mx-auto px-6 pb-16">
-    <!-- Filter chips -->
-    <div class="flex gap-2 overflow-x-auto scrollbar-none mb-6 -mx-6 px-6 pb-2">
-      <button class="filter-chip on" data-filter="all">全部 <span class="text-xs opacity-70">{mainList.length}</span></button>
-      <button class="filter-chip" data-filter="indoor">🏠 室内</button>
-      <button class="filter-chip" data-filter="outdoor">🌳 户外公园</button>
-      <button class="filter-chip" data-filter="water">💧 水上</button>
-      <button class="filter-chip" data-filter="beach">🏖️ 海滩</button>
-      <button class="filter-chip" data-filter="other">✨ 其他</button>
-    </div>
-
-    <!-- Main list -->
+  <main class="max-w-6xl mx-auto px-6 pb-16 space-y-10">
+    <!-- === 本周活动 === -->
     <section>
-      <div class="flex items-baseline justify-between gap-2 mb-4">
+      <div class="flex items-baseline justify-between gap-2 mb-4 flex-wrap">
         <h2 class="text-xl font-serif font-bold text-ink flex items-baseline gap-2">
-          <span>🎈 遛娃圣地</span>
-          <span class="text-sm text-ink-muted font-sans">{mainList.length} 个地点</span>
+          <span>🎈 本周活动</span>
+          <span id="events-count" class="text-sm text-ink-muted font-sans"></span>
         </h2>
         <button
           type="button"
           data-create-item
-          data-item-type="play"
+          data-item-type="event"
           class="text-sm px-3 py-1.5 rounded-chip bg-sage text-white hover:bg-sage-dark font-medium whitespace-nowrap"
         >
-          + 新增地点
+          + 发布活动
         </button>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="play-grid">
-        {mainList.map((p) => (
-          <article
-            class="play-card bg-white rounded-card shadow-soft p-5 hover:shadow-hover transition"
-            data-item-card
-            data-item-type="play"
-            data-item-id={p.id}
-            data-vibe={vibe(p)}
-          >
-            <div class="flex items-start justify-between gap-2 mb-2">
-              <h3 class="font-semibold text-ink leading-tight flex-1" data-field="name">{p.name}</h3>
-              <span class="text-xs text-ink-muted shrink-0">#{p.num}</span>
-            </div>
-            <div class="flex flex-wrap gap-2 mt-3 mb-3">
-              <span class:list={['tag', { 'hidden': !p.drive }]} data-field-wrapper="drive">🚗 <span data-field="drive">{p.drive}</span></span>
-              <span class:list={['tag', 'tag-warm', { 'hidden': !p.price }]} data-field-wrapper="price"><span data-field="price">{p.price}</span></span>
-            </div>
-            <p class:list={['text-sm text-ink-light mt-2 leading-relaxed', { 'hidden': !p.tips }]} data-field="tips">{p.tips}</p>
-            <a href={mapLink(p.name)} target="_blank" rel="noopener" class="text-xs text-sage-dark hover:text-sage font-medium mt-3 inline-flex items-center gap-1">
-              <span>📍 Google Maps</span>
-            </a>
-            <ItemActions itemType="play" itemId={p.id} />
-            <ItemFeedback itemType="play" itemId={p.id} />
-          </article>
-        ))}
+      <div id="events-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <p class="text-sm text-ink-muted col-span-full py-6 text-center">加载活动中…</p>
       </div>
     </section>
 
-    <!-- Other sections -->
-    {otherSections.map((sec) => {
-      const items = play.filter((p) => p.section === sec);
-      return (
-        <section class="mt-14">
-          <h2 class="text-xl font-serif font-bold mb-4">🍁 {sec}</h2>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {items.map((p) => (
-              <article
-                class="bg-white rounded-card shadow-soft p-5"
-                data-item-card
-                data-item-type="play"
-                data-item-id={p.id}
-              >
-                <h3 class="font-semibold text-ink leading-tight" data-field="name">{p.name}</h3>
-                <div class="flex flex-wrap gap-2 mt-2 mb-2">
-                  <span class:list={['tag', { 'hidden': !p.drive }]}>🚗 <span data-field="drive">{p.drive}</span></span>
-                  <span class:list={['tag', 'tag-warm', { 'hidden': !p.price }]}><span data-field="price">{p.price}</span></span>
-                </div>
-                <p class:list={['text-sm text-ink-light leading-relaxed', { 'hidden': !p.tips }]} data-field="tips">{p.tips}</p>
-                <a href={mapLink(p.name)} target="_blank" rel="noopener" class="text-xs text-sage-dark hover:text-sage font-medium mt-2 inline-flex items-center gap-1">
-                  <span>📍 Google Maps</span>
-                </a>
-                <ItemFeedback itemType="play" itemId={p.id} />
-              </article>
-            ))}
-          </div>
-        </section>
-      );
-    })}
+    <!-- === 最近新增地点 === -->
+    <section>
+      <h2 class="text-xl font-serif font-bold text-ink mb-4 flex items-baseline gap-2">
+        <span>🆕 最近新增</span>
+        <span id="new-items-count" class="text-sm text-ink-muted font-sans"></span>
+      </h2>
+      <div id="new-items-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <p class="text-sm text-ink-muted col-span-full py-4 text-center">加载中…</p>
+      </div>
+    </section>
+
+    <!-- === 最近热议 === -->
+    <section>
+      <h2 class="text-xl font-serif font-bold text-ink mb-4 flex items-baseline gap-2">
+        <span>💬 最近热议</span>
+      </h2>
+      <div id="hot-items-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <p class="text-sm text-ink-muted col-span-full py-4 text-center">加载中…</p>
+      </div>
+    </section>
+
+    <!-- === 季节性 / 理财提醒 (static) === -->
+    {staticBlocks.length > 0 && (
+      <section>
+        <h2 class="text-xl font-serif font-bold text-ink mb-4 flex items-baseline gap-2">
+          <span>📅 季节推荐</span>
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {staticBlocks.map((b) => (
+            <article class="bg-white rounded-card shadow-soft p-5">
+              {b.title && <h3 class="font-serif font-bold text-base mb-2">{b.title}</h3>}
+              <ul class="space-y-1.5 text-sm text-ink-light">
+                {b.items.slice(0, 6).map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
+      </section>
+    )}
   </main>
+
+  <!-- Modals reused by create/edit/history/flag -->
 </Base>
 
 <script>
   import '../lib/feedback';
-  import { registerPlayTemplate } from '../lib/card-templates';
-  registerPlayTemplate();
   import '../lib/hydrate-items';
   import '../lib/edit-item';
   import '../lib/history';
   import '../lib/flag';
-</script>
-
-<style>
-  .scrollbar-none::-webkit-scrollbar { display: none; }
-  .scrollbar-none { scrollbar-width: none; }
-
-  .filter-chip {
-    @apply flex-shrink-0 px-4 py-2 rounded-chip text-sm font-medium whitespace-nowrap transition border border-transparent cursor-pointer;
-    @apply bg-white text-ink-light hover:bg-sage-light;
-  }
-  .filter-chip.on {
-    @apply bg-sage text-white shadow-soft;
-  }
-
-  .tag {
-    @apply inline-flex items-center px-2.5 py-1 rounded-full bg-sage-light text-sage-dark text-xs font-medium;
-  }
-  .tag-warm {
-    @apply bg-warm-light text-warm;
-  }
-</style>
-
-<script>
-  const chips = document.querySelectorAll<HTMLButtonElement>('.filter-chip');
-  const cards = document.querySelectorAll<HTMLElement>('#play-grid .play-card');
-  chips.forEach((chip) => {
-    chip.addEventListener('click', () => {
-      chips.forEach((c) => c.classList.remove('on'));
-      chip.classList.add('on');
-      const f = chip.dataset.filter;
-      cards.forEach((card) => {
-        card.style.display = f === 'all' || card.dataset.vibe === f ? '' : 'none';
-      });
-    });
-  });
+  import '../lib/share';
+  import '../lib/deep-link';
+  import '../lib/home-aggregator';
 </script>
