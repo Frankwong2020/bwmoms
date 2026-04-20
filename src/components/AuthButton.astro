@@ -3,6 +3,15 @@
 ---
 
 <div id="auth-root" class="flex items-center gap-2">
+  <!-- Admin link (shown only when current user is admin) -->
+  <a
+    data-admin-link
+    href="/admin"
+    class="hidden text-xs px-2.5 py-1.5 rounded-chip bg-sage-light text-sage-dark hover:bg-sage hover:text-white font-medium transition"
+    title="管理面板"
+  >
+    ⚙️ 管理
+  </a>
   <!-- Initial state: loading shimmer -->
   <div class="h-8 w-24 rounded-chip bg-sage-light/50 animate-pulse" data-auth-loading></div>
 
@@ -57,9 +66,26 @@
     const avatarFallback = root.querySelector<HTMLElement>('[data-auth-avatar-fallback]');
     const nameSpan = root.querySelector<HTMLElement>('[data-auth-name]');
     const signoutBtn = root.querySelector<HTMLButtonElement>('[data-auth-signout]');
+    const adminLink = root.querySelector<HTMLElement>('[data-admin-link]');
+
+    async function refreshAdminLink(userId: string | null) {
+      if (!adminLink) return;
+      if (!userId) {
+        adminLink.classList.add('hidden');
+        return;
+      }
+      const { data } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle();
+      const isAdmin = data?.role === 'admin' || data?.role === 'super_admin';
+      adminLink.classList.toggle('hidden', !isAdmin);
+    }
 
     function render(session: import('@supabase/supabase-js').Session | null) {
       loading?.classList.add('hidden');
+      void refreshAdminLink(session?.user?.id ?? null);
       if (session?.user) {
         signinBtn?.classList.add('hidden');
         signinBtn?.classList.remove('flex');

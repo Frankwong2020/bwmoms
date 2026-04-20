@@ -1,0 +1,81 @@
+---
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+---
+
+<Base title="管理面板 · 桥水小娃群">
+  <Header />
+
+  <div id="admin-page" class="max-w-6xl mx-auto px-6 py-8">
+    <!-- Initial loading state -->
+    <div id="admin-loading" class="text-center py-16 text-ink-muted">
+      <div class="inline-block w-8 h-8 border-2 border-sage border-t-transparent rounded-full animate-spin"></div>
+      <p class="mt-3 text-sm">检查权限…</p>
+    </div>
+
+    <!-- Signed out -->
+    <div id="admin-signed-out" class="hidden text-center py-16">
+      <p class="text-lg mb-3">⛔ 请先登录</p>
+      <p class="text-ink-muted text-sm">只有管理员可以访问此页面</p>
+    </div>
+
+    <!-- Not an admin -->
+    <div id="admin-forbidden" class="hidden text-center py-16">
+      <p class="text-lg mb-3">⛔ 无权限</p>
+      <p class="text-ink-muted text-sm">你不是管理员，无法访问此页面</p>
+      <a href="/" class="text-sage-dark hover:text-sage font-medium text-sm mt-4 inline-block">← 返回首页</a>
+    </div>
+
+    <!-- Admin panel -->
+    <div id="admin-panel" class="hidden">
+      <div class="flex items-baseline justify-between mb-6 flex-wrap gap-2">
+        <h1 class="text-3xl font-serif font-bold">⚙️ 管理面板</h1>
+        <p class="text-xs text-ink-muted">
+          <span id="admin-role-badge" class="tag"></span>
+          <span id="admin-name-display" class="ml-2"></span>
+        </p>
+      </div>
+
+      <!-- Tabs -->
+      <nav class="flex gap-1.5 overflow-x-auto scrollbar-none mb-6 border-b border-black/5 pb-0">
+        <button type="button" class="admin-tab on" data-section="recent">📝 最近活动 <span class="badge" data-badge="recent">0</span></button>
+        <button type="button" class="admin-tab" data-section="flags">🚩 举报队列 <span class="badge" data-badge="flags">0</span></button>
+        <button type="button" class="admin-tab" data-section="hidden">👁️ 隐藏条目 <span class="badge" data-badge="hidden">0</span></button>
+        <button type="button" class="admin-tab" data-section="users">👥 用户管理</button>
+        <button type="button" class="admin-tab" data-section="logs">📜 操作日志</button>
+      </nav>
+
+      <section id="section-recent" class="admin-section"></section>
+      <section id="section-flags" class="admin-section hidden"></section>
+      <section id="section-hidden" class="admin-section hidden"></section>
+      <section id="section-users" class="admin-section hidden"></section>
+      <section id="section-logs" class="admin-section hidden"></section>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+  .scrollbar-none { scrollbar-width: none; }
+
+  .admin-tab {
+    @apply flex-shrink-0 px-4 py-2 rounded-t-chip text-sm font-medium whitespace-nowrap cursor-pointer transition border-b-2 border-transparent -mb-px;
+    @apply text-ink-light hover:text-ink hover:bg-sage-light/40;
+  }
+  .admin-tab.on {
+    @apply text-sage-dark border-sage bg-white;
+  }
+
+  .badge {
+    @apply inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 ml-1 rounded-full bg-warm text-white text-[10px] font-semibold;
+  }
+  .badge:empty, .badge[data-badge]:is([data-value="0"]) { display: none; }
+
+  .tag {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full bg-sage text-white text-xs font-medium;
+  }
+</style>
+
+<script>
+  import '../lib/admin/index';
+</script>
